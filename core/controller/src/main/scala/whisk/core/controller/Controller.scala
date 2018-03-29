@@ -31,6 +31,7 @@ import akka.stream.ActorMaterializer
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import kamon.Kamon
+import kamon.prometheus.PrometheusReporter
 import whisk.common.AkkaLogging
 import whisk.common.Logging
 import whisk.common.LoggingMarkers
@@ -183,14 +184,14 @@ object Controller {
       "runtimes" -> runtimes.toJson)
 
   def main(args: Array[String]): Unit = {
-    Kamon.start()
+    Kamon.addReporter(new PrometheusReporter())
     implicit val actorSystem = ActorSystem("controller-actor-system")
     implicit val logger = new AkkaLogging(akka.event.Logging.getLogger(actorSystem, this))
 
     // Prepare Kamon shutdown
     CoordinatedShutdown(actorSystem).addTask(CoordinatedShutdown.PhaseActorSystemTerminate, "shutdownKamon") { () =>
       logger.info(this, s"Shutting down Kamon with coordinated shutdown")
-      Kamon.shutdown()
+      Kamon.stopAllReporters()
       Future.successful(Done)
     }
 

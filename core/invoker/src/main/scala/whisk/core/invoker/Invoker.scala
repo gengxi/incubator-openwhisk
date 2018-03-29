@@ -23,6 +23,7 @@ import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Try
 import kamon.Kamon
+import kamon.prometheus.PrometheusReporter
 import org.apache.curator.retry.RetryUntilElapsed
 import org.apache.curator.framework.CuratorFrameworkFactory
 import org.apache.curator.framework.recipes.shared.SharedCount
@@ -64,7 +65,7 @@ object Invoker {
       Map(invokerName -> "")
 
   def main(args: Array[String]): Unit = {
-    Kamon.start()
+    Kamon.addReporter(new PrometheusReporter())
 
     implicit val ec = ExecutionContextFactory.makeCachedThreadPoolExecutionContext()
     implicit val actorSystem: ActorSystem =
@@ -74,7 +75,7 @@ object Invoker {
     // Prepare Kamon shutdown
     CoordinatedShutdown(actorSystem).addTask(CoordinatedShutdown.PhaseActorSystemTerminate, "shutdownKamon") { () =>
       logger.info(this, s"Shutting down Kamon with coordinated shutdown")
-      Kamon.shutdown()
+      Kamon.stopAllReporters()
       Future.successful(Done)
     }
 
