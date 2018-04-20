@@ -23,6 +23,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.{Instant, ZoneId}
 import java.time.format.DateTimeFormatterBuilder
+import java.util.concurrent.Semaphore
 
 import akka.actor.ActorSystem
 import akka.event.Logging.{ErrorLevel, InfoLevel}
@@ -46,7 +47,6 @@ import whisk.core.containerpool.ContainerAddress
 import whisk.core.containerpool.docker.ProcessRunner
 import whisk.core.entity.ByteSize
 import whisk.core.entity.size._
-
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -54,14 +54,15 @@ import scala.concurrent.blocking
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import collection.JavaConverters._
+
 import io.fabric8.kubernetes.client.ConfigBuilder
 import io.fabric8.kubernetes.client.DefaultKubernetesClient
 import okhttp3.{Call, Callback, Request, Response}
 import okio.BufferedSource
-
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.control.NonFatal
@@ -79,7 +80,9 @@ case class KubernetesInvokerAgentConfig(enabled: Boolean, port: Int)
 /**
  * General configuration for kubernetes client
  */
-case class KubernetesClientConfig(timeouts: KubernetesClientTimeoutConfig, invokerAgent: KubernetesInvokerAgentConfig)
+case class KubernetesClientConfig(concurrentStarts: Int,
+                                  timeouts: KubernetesClientTimeoutConfig,
+                                  invokerAgent: KubernetesInvokerAgentConfig)
 
 /**
  * Serves as interface to the kubectl CLI tool.
@@ -115,6 +118,10 @@ class KubernetesClient(
   }
   protected val kubectlCmd = Seq(findKubectlCmd)
 
+  protected val maxParallelRuns = config.concurrentStarts
+  protected val runSemaphore = new Semaphore( /* permits= */ maxParallelRuns, /* fair= */ true)
+
+  // Use a semaphore to control how many pods we try to start at once
   def run(name: String,
           image: String,
           memory: ByteSize = 256.MB,
@@ -149,21 +156,45 @@ class KubernetesClient(
       .build()
 
     val namespace = kubeRestClient.getNamespace
-    kubeRestClient.pods.inNamespace(namespace).create(pod)
-
     Future {
       blocking {
-        val createdPod = kubeRestClient.pods
-          .inNamespace(namespace)
-          .withName(name)
-          .waitUntilReady(config.timeouts.run.length, config.timeouts.run.unit)
-        toContainer(createdPod)
+        // Acquires a permit from this semaphore, blocking until one is available, or the thread is interrupted.
+        // Throws InterruptedException if the current thread is interrupted
+        runSemaphore.acquire()
       }
-    }.recoverWith {
-      case e =>
-        log.error(this, s"Failed create pod for '$name': ${e.getClass} - ${e.getMessage}")
-        Future.failed(new Exception(s"Failed to create pod '$name'"))
-    }
+    }.flatMap { _ =>
+        Future {
+          blocking {
+            kubeRestClient.pods.inNamespace(namespace).create(pod)
+          }
+        }
+      }
+      .flatMap { _ =>
+        Future {
+          blocking {
+            val createdPod = kubeRestClient.pods
+              .inNamespace(namespace)
+              .withName(name)
+              .waitUntilReady(config.timeouts.run.length, config.timeouts.run.unit)
+            toContainer(createdPod)
+          }
+        }
+      }
+      .andThen {
+        // Release the semaphore as quick as possible regardless of the runCmd() result
+        case _ => runSemaphore.release()
+      }
+      .recoverWith {
+        case e =>
+          log.error(this, s"Failed create pod for '$name': ${e.getClass} - ${e.getMessage}")
+          Future {
+            blocking {
+              kubeRestClient.pods.inNamespace(namespace).withName(name).delete()
+            }
+          }.flatMap { _ =>
+            Future.failed(new Exception(s"Failed to create pod '$name'"))
+          }
+      }
   }
 
   def rm(container: KubernetesContainer)(implicit transid: TransactionId): Future[Unit] = {
