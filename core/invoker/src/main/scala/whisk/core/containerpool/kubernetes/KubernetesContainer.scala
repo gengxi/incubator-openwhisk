@@ -109,6 +109,7 @@ class KubernetesContainer(protected[core] val id: ContainerId,
 
   override def destroy()(implicit transid: TransactionId): Future[Unit] = {
     super.destroy()
+    suspend()
     kubernetes.rm(this)
   }
 
