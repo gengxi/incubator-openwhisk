@@ -26,13 +26,13 @@ import org.apache.commons.io.{FileUtils, FilenameUtils}
 import org.scalatest.Matchers
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.Span.convertDurationToSpan
-
 import scala.collection.immutable.Seq
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 import scala.util.Try
 import scala.util.{Failure, Success}
+
 import akka.http.scaladsl.model.StatusCode
 import akka.http.scaladsl.model.StatusCodes.Accepted
 import akka.http.scaladsl.model.StatusCodes.NotFound
@@ -69,11 +69,15 @@ import common.WskProps
 import whisk.core.entity.ByteSize
 import whisk.utils.retry
 import javax.net.ssl._
+
 import com.typesafe.sslconfig.akka.AkkaSSLConfig
 import java.nio.charset.StandardCharsets
 import java.security.KeyStore
 
 import akka.actor.ActorSystem
+import com.atlassian.oai.validator.SwaggerRequestResponseValidator
+import com.atlassian.oai.validator.model.SimpleRequest
+import com.atlassian.oai.validator.model.SimpleResponse
 import pureconfig.loadConfigOrThrow
 import whisk.common.Https.HttpsConfig
 
@@ -1140,6 +1144,7 @@ trait RunRestCmd extends Matchers with ScalaFutures {
   val maxOpenRequest = 1024
   val basePath = Path("/api/v1")
   val systemNamespace = "whisk.system"
+  val specValidator = SwaggerRequestResponseValidator.createFor("apiv1swagger.json").build()
 
   implicit val config = PatienceConfig(100 seconds, 15 milliseconds)
   implicit val actorSystem: ActorSystem
@@ -1175,6 +1180,7 @@ trait RunRestCmd extends Matchers with ScalaFutures {
                     body: Option[String] = None)(implicit wp: WskProps): HttpResponse = {
 
     val creds = getBasicHttpCredentials(wp)
+    val auth = Authorization(creds)
 
     // startsWith(http) includes https
     val hostWithScheme = if (wp.apihost.startsWith("http")) {
@@ -1186,9 +1192,36 @@ trait RunRestCmd extends Matchers with ScalaFutures {
     val request = HttpRequest(
       method,
       hostWithScheme.withPath(path).withQuery(Query(params)),
-      List(Authorization(creds)),
+      List(auth),
       entity = body.map(b => HttpEntity(ContentTypes.`application/json`, b)).getOrElse(HttpEntity.Empty))
-    Http().singleRequest(request, connectionContext).futureValue
+    val response = Http().singleRequest(request, connectionContext).futureValue
+
+    var specRequestBuilder = new SimpleRequest.Builder(method.value, path.toString())
+      .withHeader(auth.name(), auth.value())
+    for ((key, value) <- params) {
+      specRequestBuilder = specRequestBuilder.withQueryParam(key, value)
+    }
+    if (body.nonEmpty) {
+      specRequestBuilder = specRequestBuilder
+        .withBody(body.get)
+        .withHeader("content-type", "application/json")
+    }
+    var specResponseBuilder = SimpleResponse.Builder
+      .status(response.status.intValue())
+      .withBody(getRespData(response))
+    for (header <- response.headers) {
+      specResponseBuilder = specResponseBuilder.withHeader(header.name, header.value)
+    }
+    val specRequest = specRequestBuilder.build()
+    val specResponse = specResponseBuilder.build()
+    val specValidationReport = specValidator.validate(specRequest, specResponse)
+    if (specValidationReport.hasErrors) {
+      System.out.println("!!! REQUEST: " + specRequest.getBody)
+      System.out.println("!!! RESPONSE: " + specResponse.getBody)
+      fail(specValidationReport.toString)
+    }
+
+    response
   }
 
   private def getBasicHttpCredentials(wp: WskProps): BasicHttpCredentials = {
