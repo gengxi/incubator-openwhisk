@@ -1168,7 +1168,19 @@ trait RunRestCmd extends Matchers with ScalaFutures {
           WhitelistRules.allOf(
             WhitelistRules.messageContains("Object instance has properties which are not allowed by the schema"),
             WhitelistRules.pathContains("/triggers/"),
-            WhitelistRules.methodIs(io.swagger.models.HttpMethod.POST))))
+            WhitelistRules.methodIs(io.swagger.models.HttpMethod.POST)))
+        .withRule(
+          "Ignore invalid action kinds",
+          WhitelistRules.allOf(
+            WhitelistRules.messageContains("[Path '/exec/kind'] Instance value .* not found in enum"),
+            WhitelistRules.pathContains("/actions/"),
+            WhitelistRules.methodIs(io.swagger.models.HttpMethod.PUT)))
+        .withRule(
+          "Ignore deletes on actions",
+          WhitelistRules.allOf(
+            WhitelistRules.messageContains("DELETE operation not allowed on path"),
+            WhitelistRules.pathContains("/actions/"),
+            WhitelistRules.methodIs(io.swagger.models.HttpMethod.DELETE))))
     .build()
 
   implicit val config = PatienceConfig(100 seconds, 15 milliseconds)

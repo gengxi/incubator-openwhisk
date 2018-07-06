@@ -169,6 +169,9 @@
                     "401": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
+                    "403": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
                     "404": {
                         "$ref": "#/responses/ItemNotFound"
                     },
@@ -225,6 +228,9 @@
                     "401": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
+                    "403": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
                     "409": {
                         "$ref": "#/responses/Conflict"
                     },
@@ -248,6 +254,9 @@
                         "$ref": "#/responses/DeletedItem"
                     },
                     "401": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
+                    "403": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
                     "404": {
@@ -318,6 +327,9 @@
                     "401": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
+                    "403": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
                     "404": {
                         "$ref": "#/responses/ItemNotFound"
                     },
@@ -386,6 +398,9 @@
                     "401": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
+                    "403": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
                     "404": {
                         "$ref": "#/responses/ItemNotFound"
                     },
@@ -442,6 +457,9 @@
                     "401": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
+                    "403": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
                     "409": {
                         "$ref": "#/responses/Conflict"
                     },
@@ -465,6 +483,9 @@
                         "$ref": "#/responses/DeletedItem"
                     },
                     "401": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
+                    "403": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
                     "404": {
@@ -533,6 +554,9 @@
                         "$ref": "#/responses/AcceptedActivation"
                     },
                     "401": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
+                    "403": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
                     "404": {
@@ -1280,6 +1304,9 @@
                     "404": {
                         "$ref": "#/responses/ItemNotFound"
                     },
+                    "409": {
+                        "$ref": "#/responses/Conflict"
+                    },
                     "500": {
                         "$ref": "#/responses/ServerError"
                     }
@@ -1345,6 +1372,9 @@
                         "$ref": "#/responses/BadRequest"
                     },
                     "401": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
+                    "403": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
                     "409": {
@@ -1839,8 +1869,7 @@
                         "java",
                         "java:default",
                         "blackbox",
-                        "sequence",
-                        ""
+                        "sequence"
                     ],
                     "description": "the type of action"
                 },
