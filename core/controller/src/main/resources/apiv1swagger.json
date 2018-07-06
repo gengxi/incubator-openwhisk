@@ -110,7 +110,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/EntityBrief"
+                                "$ref": "#/definitions/Action"
                             }
                         }
                     },
@@ -281,6 +281,9 @@
                     "404": {
                         "$ref": "#/responses/ItemNotFound"
                     },
+                    "409": {
+                        "$ref": "#/responses/Conflict"
+                    },
                     "500": {
                         "$ref": "#/responses/ServerError"
                     }
@@ -341,18 +344,12 @@
                         "name": "payload",
                         "in": "body",
                         "description": "The parameters for the action being invoked",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/KeyValue"
-                        }
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful activation",
-                        "schema": {
-                            "$ref": "#/definitions/Activation"
-                        }
+                        "description": "Successful activation"
                     },
                     "202": {
                         "$ref": "#/responses/AcceptedActivation"
@@ -370,13 +367,13 @@
                         "$ref": "#/responses/ServerError"
                     },
                     "502": {
-                        "description": "Activation produced an application error",
-                        "schema": {
-                            "$ref": "#/definitions/Activation"
-                        }
+                        "description": "Activation produced an application error"
                     }
                 }
             }
+        },
+        "/namespaces/{namespace}/actions/{packageName}/{actionName}": {
+            "$ref": "#/paths/~1namespaces~1{namespace}~1actions~1{actionName}"
         },
         "/namespaces/{namespace}/rules": {
             "get": {
@@ -418,7 +415,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/EntityBrief"
+                                "$ref": "#/definitions/Rule"
                             }
                         }
                     },
@@ -629,7 +626,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "$ref": "#/responses/UpdatedItem"
+                        "$ref": "#/responses/AcceptedRuleStateChange"
                     },
                     "202": {
                         "$ref": "#/responses/AcceptedRuleStateChange"
@@ -689,7 +686,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/EntityBrief"
+                                "$ref": "#/definitions/Trigger"
                             }
                         }
                     },
@@ -885,9 +882,7 @@
                         "in": "body",
                         "description": "The trigger payload",
                         "required": false,
-                        "schema": {
-                            "$ref": "#/definitions/KeyValue"
-                        }
+                        "type": "string"
                     }
                 ],
                 "responses": {
@@ -962,7 +957,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/EntityBrief"
+                                "$ref": "#/definitions/Package"
                             }
                         }
                     },
@@ -1071,7 +1066,10 @@
                 ],
                 "responses": {
                     "200": {
-                        "$ref": "#/responses/UpdatedItem"
+                        "description": "Updated Package",
+                        "schema": {
+                            "$ref": "#/definitions/Package"
+                        }
                     },
                     "400": {
                         "$ref": "#/responses/BadRequest"
@@ -1122,6 +1120,9 @@
                     },
                     "404": {
                         "$ref": "#/responses/ItemNotFound"
+                    },
+                    "409": {
+                        "$ref": "#/responses/Conflict"
                     },
                     "500": {
                         "$ref": "#/responses/ServerError"
@@ -1458,7 +1459,6 @@
                 "version",
                 "publish",
                 "exec",
-                "parameters",
                 "limits"
             ],
             "properties": {
@@ -1500,6 +1500,10 @@
                 },
                 "limits": {
                     "$ref": "#/definitions/ActionLimits"
+                },
+                "updated": {
+                    "type": "integer",
+                    "description": "Time when the action was updated"
                 }
             }
         },
@@ -1548,9 +1552,6 @@
             }
         },
         "ActionExec": {
-            "required": [
-                "kind"
-            ],
             "properties": {
                 "kind": {
                     "type": "string",
@@ -1604,7 +1605,6 @@
                 "name",
                 "version",
                 "publish",
-                "status",
                 "trigger",
                 "action"
             ],
@@ -1703,9 +1703,7 @@
                 "namespace",
                 "name",
                 "version",
-                "publish",
-                "parameters",
-                "limits"
+                "publish"
             ],
             "properties": {
                 "namespace": {
@@ -1747,6 +1745,10 @@
                 "rules": {
                     "type": "object",
                     "description": "rules associated with the trigger"
+                },
+                "updated": {
+                    "type": "integer",
+                    "description": "Time when the trigger was updated"
                 }
             }
         },
@@ -1811,9 +1813,64 @@
                 "namespace",
                 "name",
                 "version",
-                "publish",
-                "parameters"
+                "publish"
             ],
+            "properties": {
+                "namespace": {
+                    "type": "string",
+                    "description": "Namespace of the item",
+                    "minLength": 1
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name of the item",
+                    "minLength": 1
+                },
+                "version": {
+                    "type": "string",
+                    "description": "Semantic version of the item",
+                    "minLength": 1
+                },
+                "publish": {
+                    "type": "boolean",
+                    "description": "Whether to publish the item or not"
+                },
+                "annotations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/KeyValue"
+                    },
+                    "description": "annotations on the item"
+                },
+                "parameters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/KeyValue"
+                    },
+                    "description": "parameter for the package"
+                },
+                "binding": {
+                    "$ref": "#/definitions/PackageBinding"
+                },
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PackageAction"
+                    },
+                    "description": "Actions contained in this package"
+                },
+                "feeds": {
+                    "type": "array",
+                    "description": "Feeds contained in this package"
+                },
+                "updated": {
+                    "type": "integer",
+                    "description": "Time when the package was updated"
+                }
+            }
+        },
+        "PackagePut": {
+            "description": "A restricted Package view used when updating a Package",
             "properties": {
                 "namespace": {
                     "type": "string",
@@ -1853,17 +1910,34 @@
                 }
             }
         },
-        "PackagePut": {
-            "description": "A restricted Package view that elides properties that are auto-assigned or derived from the URI (i.e., the namespace and name).",
+        "PackageBinding": {
             "properties": {
+                "namespace": {
+                    "type": "string",
+                    "description": "Namespace of the item"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name of the item"
+                }
+            }
+        },
+        "PackageAction": {
+            "description": "A restricted Action view used when listing actions in a package",
+            "required": [
+                "name",
+                "version"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the item",
+                    "minLength": 1
+                },
                 "version": {
                     "type": "string",
                     "description": "Semantic version of the item",
                     "minLength": 1
-                },
-                "publish": {
-                    "type": "boolean",
-                    "description": "Whether to publish the item or not"
                 },
                 "annotations": {
                     "type": "array",
@@ -1877,26 +1951,7 @@
                     "items": {
                         "$ref": "#/definitions/KeyValue"
                     },
-                    "description": "parameter for the package"
-                },
-                "binding": {
-                    "$ref": "#/definitions/PackageBinding"
-                }
-            }
-        },
-        "PackageBinding": {
-            "required": [
-                "namespace",
-                "name"
-            ],
-            "properties": {
-                "namespace": {
-                    "type": "string",
-                    "description": "Namespace of the item"
-                },
-                "name": {
-                    "type": "string",
-                    "description": "Name of the item"
+                    "description": "parameter bindings included in the context passed to the action"
                 }
             }
         },
@@ -1949,8 +2004,12 @@
                     "description": "Time when the activation began"
                 },
                 "end": {
-                    "type": "string",
+                    "type": "integer",
                     "description": "Time when the activation completed"
+                },
+                "duration": {
+                    "type": "integer",
+                    "description": "How long the invocation took, in millisecnods"
                 },
                 "response": {
                     "$ref": "#/definitions/ActivationResult"
@@ -2157,7 +2216,7 @@
         "AcceptedActivation": {
             "description": "Accepted activation request",
             "schema": {
-                "$ref": "#/definitions/ItemId"
+                "$ref": "#/definitions/ActivationId"
             }
         },
         "AcceptedRuleStateChange": {
