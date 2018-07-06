@@ -124,6 +124,22 @@
             }
         },
         "/namespaces/{namespace}/actions/{actionName}": {
+            "parameters": [
+                {
+                    "name": "namespace",
+                    "in": "path",
+                    "description": "The entity namespace",
+                    "required": true,
+                    "type": "string"
+                },
+                {
+                    "name": "actionName",
+                    "in": "path",
+                    "description": "Name of action to fetch",
+                    "required": true,
+                    "type": "string"
+                }
+            ],
             "get": {
                 "tags": [
                     "Actions"
@@ -132,20 +148,6 @@
                 "description": "Get action information.",
                 "operationId": "getActionByName",
                 "parameters": [
-                    {
-                        "name": "namespace",
-                        "in": "path",
-                        "description": "The entity namespace",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "name": "actionName",
-                        "in": "path",
-                        "description": "Name of action to fetch",
-                        "required": true,
-                        "type": "string"
-                    },
                     {
                         "name": "code",
                         "in": "query",
@@ -183,20 +185,6 @@
                 "summary": "Create or update an action",
                 "operationId": "updateAction",
                 "parameters": [
-                    {
-                        "name": "namespace",
-                        "in": "path",
-                        "description": "The entity namespace",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "name": "actionName",
-                        "in": "path",
-                        "description": "Name of action",
-                        "required": true,
-                        "type": "string"
-                    },
                     {
                         "name": "overwrite",
                         "in": "query",
@@ -255,22 +243,6 @@
                 "description": "Delete an action",
                 "summary": "Delete an action",
                 "operationId": "deleteAction",
-                "parameters": [
-                    {
-                        "name": "namespace",
-                        "in": "path",
-                        "description": "The entity namespace",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "name": "actionName",
-                        "in": "path",
-                        "description": "Name of action",
-                        "required": true,
-                        "type": "string"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "$ref": "#/responses/DeletedItem"
@@ -297,20 +269,6 @@
                 "summary": "Invoke an action",
                 "operationId": "invokeAction",
                 "parameters": [
-                    {
-                        "name": "namespace",
-                        "in": "path",
-                        "description": "The entity namespace",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "name": "actionName",
-                        "in": "path",
-                        "description": "Name of action",
-                        "required": true,
-                        "type": "string"
-                    },
                     {
                         "name": "blocking",
                         "in": "query",
@@ -344,7 +302,10 @@
                         "name": "payload",
                         "in": "body",
                         "description": "The parameters for the action being invoked",
-                        "required": true
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
                     }
                 ],
                 "responses": {
@@ -373,7 +334,304 @@
             }
         },
         "/namespaces/{namespace}/actions/{packageName}/{actionName}": {
-            "$ref": "#/paths/~1namespaces~1{namespace}~1actions~1{actionName}"
+            "parameters": [
+                {
+                    "name": "namespace",
+                    "in": "path",
+                    "description": "The entity namespace",
+                    "required": true,
+                    "type": "string"
+                },
+                {
+                    "name": "packageName",
+                    "in": "path",
+                    "description": "Name of package that contains action",
+                    "required": true,
+                    "type": "string"
+                },
+                {
+                    "name": "actionName",
+                    "in": "path",
+                    "description": "Name of action to fetch",
+                    "required": true,
+                    "type": "string"
+                }
+            ],
+            "get": {
+                "tags": [
+                    "Actions"
+                ],
+                "summary": "Get action information",
+                "description": "Get action information.",
+                "operationId": "getActionInPackageByName",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "query",
+                        "description": "Include action code in the result",
+                        "required": false,
+                        "type": "boolean"
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returned action",
+                        "schema": {
+                            "$ref": "#/definitions/Action"
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
+                    "404": {
+                        "$ref": "#/responses/ItemNotFound"
+                    },
+                    "500": {
+                        "$ref": "#/responses/ServerError"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Actions"
+                ],
+                "description": "Create or update an action",
+                "summary": "Create or update an action",
+                "operationId": "updateActionInPackage",
+                "parameters": [
+                    {
+                        "name": "overwrite",
+                        "in": "query",
+                        "description": "Overwrite item if it exists. Default is false.",
+                        "required": false,
+                        "type": "string",
+                        "enum": [
+                            "true",
+                            "false"
+                        ]
+                    },
+                    {
+                        "name": "action",
+                        "in": "body",
+                        "description": "The action being updated",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ActionPut"
+                        }
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated Action",
+                        "schema": {
+                            "$ref": "#/definitions/Action"
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
+                    "409": {
+                        "$ref": "#/responses/Conflict"
+                    },
+                    "413": {
+                        "$ref": "#/responses/RequestEntityTooLarge"
+                    },
+                    "500": {
+                        "$ref": "#/responses/ServerError"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Actions"
+                ],
+                "description": "Delete an action",
+                "summary": "Delete an action",
+                "operationId": "deleteActionInPackage",
+                "responses": {
+                    "200": {
+                        "$ref": "#/responses/DeletedItem"
+                    },
+                    "401": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
+                    "404": {
+                        "$ref": "#/responses/ItemNotFound"
+                    },
+                    "409": {
+                        "$ref": "#/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/responses/ServerError"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Actions"
+                ],
+                "description": "Invoke an action",
+                "summary": "Invoke an action",
+                "operationId": "invokeActionInPackage",
+                "parameters": [
+                    {
+                        "name": "blocking",
+                        "in": "query",
+                        "description": "Blocking or non-blocking invocation. Default is non-blocking.",
+                        "required": false,
+                        "type": "string",
+                        "enum": [
+                            "true",
+                            "false"
+                        ]
+                    },
+                    {
+                        "name": "result",
+                        "in": "query",
+                        "description": "Return only the result of a blocking activation. Default is false.",
+                        "required": false,
+                        "type": "string",
+                        "enum": [
+                            "true",
+                            "false"
+                        ]
+                    },
+                    {
+                        "name": "timeout",
+                        "in": "query",
+                        "description": "Wait no more than specified duration in milliseconds for a blocking response. Default value and max allowed timeout are 60000.",
+                        "required": false,
+                        "type": "integer"
+                    },
+                    {
+                        "name": "payload",
+                        "in": "body",
+                        "description": "The parameters for the action being invoked",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful activation"
+                    },
+                    "202": {
+                        "$ref": "#/responses/AcceptedActivation"
+                    },
+                    "401": {
+                        "$ref": "#/responses/UnauthorizedRequest"
+                    },
+                    "404": {
+                        "$ref": "#/responses/ItemNotFound"
+                    },
+                    "408": {
+                        "$ref": "#/responses/Timeout"
+                    },
+                    "500": {
+                        "$ref": "#/responses/ServerError"
+                    },
+                    "502": {
+                        "description": "Activation produced an application error"
+                    }
+                }
+            }
+        },
+        "/web/{namespace}/{packageName}/{actionName}.{extension}": {
+            "parameters": [
+                {
+                    "name": "namespace",
+                    "type": "string",
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "packageName",
+                    "type": "string",
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "actionName",
+                    "type": "string",
+                    "in": "path",
+                    "required": true
+                },
+                {
+                    "name": "extension",
+                    "type": "string",
+                    "in": "path",
+                    "required": true
+                }
+            ],
+            "get": {
+                "tags": [
+                    "Actions"
+                ],
+                "responses": {
+                    "default": {
+                        "description": "any response",
+                        "schema": {}
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Actions"
+                ],
+                "responses": {
+                    "default": {
+                        "description": "any response",
+                        "schema": {}
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Actions"
+                ],
+                "responses": {
+                    "default": {
+                        "description": "any response",
+                        "schema": {}
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Actions"
+                ],
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "in": "body",
+                        "description": "The parameters for the action being invoked",
+                        "required": false,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": "any response",
+                        "schema": {}
+                    }
+                }
+            }
         },
         "/namespaces/{namespace}/rules": {
             "get": {
@@ -612,13 +870,23 @@
                     {
                         "name": "status",
                         "in": "body",
-                        "type": "string",
                         "description": "Set status to active or inactive",
                         "required": true,
-                        "enum": [
-                            "inactive",
-                            "active"
-                        ]
+                        "schema": {
+                            "type": "object",
+                            "required": [
+                                "status"
+                            ],
+                            "properties": {
+                                "status": {
+                                    "type": "string",
+                                    "enum": [
+                                        "inactive",
+                                        "active"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 ],
                 "produces": [
@@ -882,7 +1150,9 @@
                         "in": "body",
                         "description": "The trigger payload",
                         "required": false,
-                        "type": "string"
+                        "schema": {
+                            "type": "object"
+                        }
                     }
                 ],
                 "responses": {
@@ -1561,11 +1831,16 @@
                         "nodejs:default",
                         "python:2",
                         "python:3",
+                        "python:default",
                         "php:7.1",
                         "php:7.2",
                         "swift:3.1.1",
+                        "swift:4.1",
                         "java",
-                        "blackbox"
+                        "java:default",
+                        "blackbox",
+                        "sequence",
+                        ""
                     ],
                     "description": "the type of action"
                 },
@@ -1577,6 +1852,10 @@
                     "type": "string",
                     "description": "container image name when kind is 'blackbox'"
                 },
+                "main": {
+                    "type": "string",
+                    "description": "main entrypoint of the action code"
+                },
                 "init": {
                     "type": "string",
                     "description": "optional zipfile reference when code kind is 'nodejs'"
@@ -1584,6 +1863,13 @@
                 "binary": {
                     "type": "boolean",
                     "description": "Whether the action has a binary attachment or not"
+                },
+                "components": {
+                    "type": "array",
+                    "description": "For sequence actions, the individual action components",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             },
             "description": "definition of the action, such as javascript code or the name of a container"
@@ -2020,6 +2306,10 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "cause": {
+                    "type": "string",
+                    "description": "the activation id that caused this activation"
                 }
             }
         },
@@ -2076,8 +2366,11 @@
         "ActivationLogs": {
             "properties": {
                 "logs": {
-                    "type": "string",
-                    "description": "Interleaved standard output and error of an activation"
+                    "type": "array",
+                    "description": "Interleaved standard output and error of an activation",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

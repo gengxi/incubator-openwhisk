@@ -78,6 +78,8 @@ import akka.actor.ActorSystem
 import com.atlassian.oai.validator.SwaggerRequestResponseValidator
 import com.atlassian.oai.validator.model.SimpleRequest
 import com.atlassian.oai.validator.model.SimpleResponse
+import com.atlassian.oai.validator.whitelist.ValidationErrorsWhitelist
+import com.atlassian.oai.validator.whitelist.rule.WhitelistRules
 import pureconfig.loadConfigOrThrow
 import whisk.common.Https.HttpsConfig
 
@@ -1144,7 +1146,30 @@ trait RunRestCmd extends Matchers with ScalaFutures {
   val maxOpenRequest = 1024
   val basePath = Path("/api/v1")
   val systemNamespace = "whisk.system"
-  val specValidator = SwaggerRequestResponseValidator.createFor("apiv1swagger.json").build()
+  val specValidator = SwaggerRequestResponseValidator
+    .createFor("apiv1swagger.json")
+    .withWhitelist(
+      ValidationErrorsWhitelist
+        .create()
+        .withRule(
+          "Ignore web action payloads",
+          WhitelistRules.allOf(
+            WhitelistRules.messageContains("Object instance has properties which are not allowed by the schema"),
+            WhitelistRules.pathContains("/web/"),
+            WhitelistRules.methodIs(io.swagger.models.HttpMethod.POST)))
+        .withRule(
+          "Ignore action payloads",
+          WhitelistRules.allOf(
+            WhitelistRules.messageContains("Object instance has properties which are not allowed by the schema"),
+            WhitelistRules.pathContains("/actions/"),
+            WhitelistRules.methodIs(io.swagger.models.HttpMethod.POST)))
+        .withRule(
+          "Ignore trigger payloads",
+          WhitelistRules.allOf(
+            WhitelistRules.messageContains("Object instance has properties which are not allowed by the schema"),
+            WhitelistRules.pathContains("/triggers/"),
+            WhitelistRules.methodIs(io.swagger.models.HttpMethod.POST))))
+    .build()
 
   implicit val config = PatienceConfig(100 seconds, 15 milliseconds)
   implicit val actorSystem: ActorSystem
