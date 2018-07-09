@@ -1172,15 +1172,16 @@ trait RunRestCmd extends Matchers with ScalaFutures {
         .withRule(
           "Ignore invalid action kinds",
           WhitelistRules.allOf(
-            WhitelistRules.messageContains("[Path '/exec/kind'] Instance value .* not found in enum"),
+            WhitelistRules.messageContains("kind"),
+            WhitelistRules.messageContains("Instance value"),
+            WhitelistRules.messageContains("not found"),
             WhitelistRules.pathContains("/actions/"),
             WhitelistRules.methodIs(io.swagger.models.HttpMethod.PUT)))
         .withRule(
-          "Ignore deletes on actions",
-          WhitelistRules.allOf(
-            WhitelistRules.messageContains("DELETE operation not allowed on path"),
-            WhitelistRules.pathContains("/actions/"),
-            WhitelistRules.methodIs(io.swagger.models.HttpMethod.DELETE))))
+          "Ignore tests that check for invalid DELETEs and PUTs on actions",
+          WhitelistRules.anyOf(
+            WhitelistRules.messageContains("DELETE operation not allowed on path '/api/v1/namespaces/_/actions/'"),
+            WhitelistRules.messageContains("PUT operation not allowed on path '/api/v1/namespaces/_/actions/'"))))
     .build()
 
   implicit val config = PatienceConfig(100 seconds, 15 milliseconds)

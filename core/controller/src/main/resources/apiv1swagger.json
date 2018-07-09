@@ -253,6 +253,9 @@
                     "200": {
                         "$ref": "#/responses/DeletedItem"
                     },
+                    "400": {
+                        "$ref": "#/responses/BadRequest"
+                    },
                     "401": {
                         "$ref": "#/responses/UnauthorizedRequest"
                     },
@@ -481,6 +484,9 @@
                 "responses": {
                     "200": {
                         "$ref": "#/responses/DeletedItem"
+                    },
+                    "400": {
+                        "$ref": "#/responses/BadRequest"
                     },
                     "401": {
                         "$ref": "#/responses/UnauthorizedRequest"
