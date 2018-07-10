@@ -75,6 +75,7 @@ import java.nio.charset.StandardCharsets
 import java.security.KeyStore
 
 import akka.actor.ActorSystem
+import akka.util.ByteString
 import com.atlassian.oai.validator.SwaggerRequestResponseValidator
 import com.atlassian.oai.validator.model.SimpleRequest
 import com.atlassian.oai.validator.model.SimpleResponse
@@ -1244,14 +1245,17 @@ trait RunRestCmd extends Matchers with ScalaFutures {
         .withBody(body.get)
         .withHeader("content-type", "application/json")
     }
+    val responseBody = getRespData(response)
+    val responseCopy = response.copy(entity = HttpEntity.Strict(response.entity.contentType, ByteString(responseBody)))
     var specResponseBuilder = SimpleResponse.Builder
       .status(response.status.intValue())
-      .withBody(getRespData(response))
+      .withBody(responseBody)
     for (header <- response.headers) {
       specResponseBuilder = specResponseBuilder.withHeader(header.name, header.value)
     }
     val specRequest = specRequestBuilder.build()
     val specResponse = specResponseBuilder.build()
+
     val specValidationReport = specValidator.validate(specRequest, specResponse)
     if (specValidationReport.hasErrors) {
       System.out.println("!!! REQUEST: " + specRequest.getBody)
@@ -1259,7 +1263,7 @@ trait RunRestCmd extends Matchers with ScalaFutures {
       fail(specValidationReport.toString)
     }
 
-    response
+    responseCopy
   }
 
   private def getBasicHttpCredentials(wp: WskProps): BasicHttpCredentials = {
