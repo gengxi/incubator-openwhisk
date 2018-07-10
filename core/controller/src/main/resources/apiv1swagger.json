@@ -1217,7 +1217,7 @@
                 ],
                 "description": "Get all packages",
                 "summary": "Get all packages",
-                "operationId": "getAlPackages",
+                "operationId": "getAllPackages",
                 "parameters": [
                     {
                         "name": "namespace",
