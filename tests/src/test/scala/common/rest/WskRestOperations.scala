@@ -26,13 +26,13 @@ import org.apache.commons.io.{FileUtils, FilenameUtils}
 import org.scalatest.Matchers
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.Span.convertDurationToSpan
+
 import scala.collection.immutable.Seq
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 import scala.util.Try
 import scala.util.{Failure, Success}
-
 import akka.http.scaladsl.model.StatusCode
 import akka.http.scaladsl.model.StatusCodes.Accepted
 import akka.http.scaladsl.model.StatusCodes.NotFound
@@ -69,19 +69,12 @@ import common.WskProps
 import whisk.core.entity.ByteSize
 import whisk.utils.retry
 import javax.net.ssl._
-
 import com.typesafe.sslconfig.akka.AkkaSSLConfig
 import java.nio.charset.StandardCharsets
 import java.security.KeyStore
 
 import akka.actor.ActorSystem
 import akka.util.ByteString
-import com.atlassian.oai.validator.SwaggerRequestResponseValidator
-import com.atlassian.oai.validator.model.SimpleRequest
-import com.atlassian.oai.validator.model.SimpleResponse
-import com.atlassian.oai.validator.report.ValidationReport
-import com.atlassian.oai.validator.whitelist.ValidationErrorsWhitelist
-import com.atlassian.oai.validator.whitelist.rule.WhitelistRules
 import pureconfig.loadConfigOrThrow
 import whisk.common.Https.HttpsConfig
 
@@ -1140,75 +1133,6 @@ class RestGatewayOperations(implicit val actorSystem: ActorSystem) extends Gatew
   }
 }
 
-trait SwaggerValidator {
-  val specValidator = SwaggerRequestResponseValidator
-    .createFor("apiv1swagger.json")
-    .withWhitelist(
-      ValidationErrorsWhitelist
-        .create()
-        .withRule(
-          "Ignore web action payloads",
-          WhitelistRules.allOf(
-            WhitelistRules.messageContains("Object instance has properties which are not allowed by the schema"),
-            WhitelistRules.pathContains("/web/"),
-            WhitelistRules.methodIs(io.swagger.models.HttpMethod.POST)))
-        .withRule(
-          "Ignore action payloads",
-          WhitelistRules.allOf(
-            WhitelistRules.messageContains("Object instance has properties which are not allowed by the schema"),
-            WhitelistRules.pathContains("/actions/"),
-            WhitelistRules.methodIs(io.swagger.models.HttpMethod.POST)))
-        .withRule(
-          "Ignore trigger payloads",
-          WhitelistRules.allOf(
-            WhitelistRules.messageContains("Object instance has properties which are not allowed by the schema"),
-            WhitelistRules.pathContains("/triggers/"),
-            WhitelistRules.methodIs(io.swagger.models.HttpMethod.POST)))
-        .withRule(
-          "Ignore invalid action kinds",
-          WhitelistRules.allOf(
-            WhitelistRules.messageContains("kind"),
-            WhitelistRules.messageContains("Instance value"),
-            WhitelistRules.messageContains("not found"),
-            WhitelistRules.pathContains("/actions/"),
-            WhitelistRules.methodIs(io.swagger.models.HttpMethod.PUT)))
-        .withRule(
-          "Ignore tests that check for invalid DELETEs and PUTs on actions",
-          WhitelistRules.anyOf(
-            WhitelistRules.messageContains("DELETE operation not allowed on path '/api/v1/namespaces/_/actions/'"),
-            WhitelistRules.messageContains("PUT operation not allowed on path '/api/v1/namespaces/_/actions/'"))))
-    .build()
-
-  def validateRequestAndResponse(request: HttpRequest,
-                                 requestBody: Option[String],
-                                 response: HttpResponse,
-                                 responseBody: String): ValidationReport = {
-    var specRequestBuilder = new SimpleRequest.Builder(request.method.value, request.uri.path.toString())
-    for (header <- request.headers) {
-      specRequestBuilder = specRequestBuilder.withHeader(header.name, header.value)
-    }
-    for ((key, value) <- request.uri.query().toMap) {
-      specRequestBuilder = specRequestBuilder.withQueryParam(key, value)
-    }
-    if (requestBody.nonEmpty) {
-      specRequestBuilder = specRequestBuilder
-        .withBody(requestBody.get)
-        .withHeader("content-type", request.entity.contentType.value)
-    }
-    val responseCopy = response.copy(entity = HttpEntity.Strict(response.entity.contentType, ByteString(responseBody)))
-    var specResponseBuilder = SimpleResponse.Builder
-      .status(response.status.intValue())
-      .withBody(responseBody)
-    for (header <- response.headers) {
-      specResponseBuilder = specResponseBuilder.withHeader(header.name, header.value)
-    }
-    val specRequest = specRequestBuilder.build()
-    val specResponse = specResponseBuilder.build()
-
-    specValidator.validate(specRequest, specResponse)
-  }
-}
-
 trait RunRestCmd extends Matchers with ScalaFutures with SwaggerValidator {
 
   val protocol = loadConfigOrThrow[String]("whisk.controller.protocol")
@@ -1252,7 +1176,6 @@ trait RunRestCmd extends Matchers with ScalaFutures with SwaggerValidator {
                     body: Option[String] = None)(implicit wp: WskProps): HttpResponse = {
 
     val creds = getBasicHttpCredentials(wp)
-    val auth = Authorization(creds)
 
     // startsWith(http) includes https
     val hostWithScheme = if (wp.apihost.startsWith("http")) {
@@ -1264,7 +1187,7 @@ trait RunRestCmd extends Matchers with ScalaFutures with SwaggerValidator {
     val request = HttpRequest(
       method,
       hostWithScheme.withPath(path).withQuery(Query(params)),
-      List(auth),
+      List(Authorization(creds)),
       entity = body.map(b => HttpEntity(ContentTypes.`application/json`, b)).getOrElse(HttpEntity.Empty))
     val response = Http().singleRequest(request, connectionContext).futureValue
 
@@ -1273,11 +1196,11 @@ trait RunRestCmd extends Matchers with ScalaFutures with SwaggerValidator {
     val responseBody = getRespData(response)
     val responseCopy = response.withEntity(response.entity.contentType, ByteString(responseBody))
 
-    val specValidationReport = validateRequestAndResponse(request, body, response, responseBody)
-    if (specValidationReport.hasErrors) {
+    val validationErrors = validateRequestAndResponse(request, body, response, responseBody)
+    if (validationErrors.nonEmpty) {
       fail(
         s"HTTP request or response did not match the Swagger spec.\nRequest: $request\n" +
-          s"Response: $response\nValidation Error: $specValidationReport")
+          s"Response: $response\nValidation Error: $validationErrors")
     }
     responseCopy
   }
