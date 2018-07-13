@@ -18,6 +18,10 @@
 import org.scoverage.ScoverageReport
 import static groovy.json.JsonOutput.*
 
+plugins {
+    id 'org.hidetake.swagger.generator' version '2.12.0'
+}
+
 apply plugin: 'scala'
 apply plugin: 'eclipse'
 apply plugin: 'maven'
@@ -157,6 +161,8 @@ dependencies {
 
 
     scoverage gradle.scoverage.deps
+
+    swaggerCodegen 'io.swagger:swagger-codegen-cli:2.3.1'
 }
 
 tasks.withType(ScalaCompile) {
@@ -246,4 +252,22 @@ def getScoverageClasspath(Project project) {
     }
 
     combinedClasspath + sourceSets.test.runtimeClasspath
+}
+
+swaggerSources {
+    java {
+        inputFile = file("$projectDir/../core/controller/src/main/resources/apiv1swagger.json")
+        code {
+            language = 'java'
+            configFile = file('swagger-config.json')
+            components = ['org.slf4j.simpleLogger.defaultLogLevel': 'DEBUG']
+            dependsOn validation
+        }
+    }
+}
+
+task testSwaggerCodegen(type: GradleBuild) {
+    dependsOn swaggerSources.java.code
+    buildFile = "${buildDir}/swagger-code-java/build.gradle"
+    tasks = ['build']
 }

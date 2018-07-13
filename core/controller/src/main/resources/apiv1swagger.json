@@ -2178,6 +2178,9 @@
                 },
                 "feeds": {
                     "type": "array",
+                    "items": {
+                        "type": "object"
+                    },
                     "description": "Feeds contained in this package"
                 },
                 "updated": {
