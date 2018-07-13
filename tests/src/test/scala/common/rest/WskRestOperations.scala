@@ -79,6 +79,7 @@ import akka.util.ByteString
 import com.atlassian.oai.validator.SwaggerRequestResponseValidator
 import com.atlassian.oai.validator.model.SimpleRequest
 import com.atlassian.oai.validator.model.SimpleResponse
+import com.atlassian.oai.validator.report.ValidationReport
 import com.atlassian.oai.validator.whitelist.ValidationErrorsWhitelist
 import com.atlassian.oai.validator.whitelist.rule.WhitelistRules
 import pureconfig.loadConfigOrThrow
@@ -1139,14 +1140,7 @@ class RestGatewayOperations(implicit val actorSystem: ActorSystem) extends Gatew
   }
 }
 
-trait RunRestCmd extends Matchers with ScalaFutures {
-
-  val protocol = loadConfigOrThrow[String]("whisk.controller.protocol")
-  val idleTimeout = 90 seconds
-  val queueSize = 10
-  val maxOpenRequest = 1024
-  val basePath = Path("/api/v1")
-  val systemNamespace = "whisk.system"
+trait SwaggerValidator {
   val specValidator = SwaggerRequestResponseValidator
     .createFor("apiv1swagger.json")
     .withWhitelist(
@@ -1184,6 +1178,45 @@ trait RunRestCmd extends Matchers with ScalaFutures {
             WhitelistRules.messageContains("DELETE operation not allowed on path '/api/v1/namespaces/_/actions/'"),
             WhitelistRules.messageContains("PUT operation not allowed on path '/api/v1/namespaces/_/actions/'"))))
     .build()
+
+  def validateRequestAndResponse(request: HttpRequest,
+                                 requestBody: Option[String],
+                                 response: HttpResponse,
+                                 responseBody: String): ValidationReport = {
+    var specRequestBuilder = new SimpleRequest.Builder(request.method.value, request.uri.path.toString())
+    for (header <- request.headers) {
+      specRequestBuilder = specRequestBuilder.withHeader(header.name, header.value)
+    }
+    for ((key, value) <- request.uri.query().toMap) {
+      specRequestBuilder = specRequestBuilder.withQueryParam(key, value)
+    }
+    if (requestBody.nonEmpty) {
+      specRequestBuilder = specRequestBuilder
+        .withBody(requestBody.get)
+        .withHeader("content-type", request.entity.contentType.value)
+    }
+    val responseCopy = response.copy(entity = HttpEntity.Strict(response.entity.contentType, ByteString(responseBody)))
+    var specResponseBuilder = SimpleResponse.Builder
+      .status(response.status.intValue())
+      .withBody(responseBody)
+    for (header <- response.headers) {
+      specResponseBuilder = specResponseBuilder.withHeader(header.name, header.value)
+    }
+    val specRequest = specRequestBuilder.build()
+    val specResponse = specResponseBuilder.build()
+
+    specValidator.validate(specRequest, specResponse)
+  }
+}
+
+trait RunRestCmd extends Matchers with ScalaFutures with SwaggerValidator {
+
+  val protocol = loadConfigOrThrow[String]("whisk.controller.protocol")
+  val idleTimeout = 90 seconds
+  val queueSize = 10
+  val maxOpenRequest = 1024
+  val basePath = Path("/api/v1")
+  val systemNamespace = "whisk.system"
 
   implicit val config = PatienceConfig(100 seconds, 15 milliseconds)
   implicit val actorSystem: ActorSystem
@@ -1235,34 +1268,17 @@ trait RunRestCmd extends Matchers with ScalaFutures {
       entity = body.map(b => HttpEntity(ContentTypes.`application/json`, b)).getOrElse(HttpEntity.Empty))
     val response = Http().singleRequest(request, connectionContext).futureValue
 
-    var specRequestBuilder = new SimpleRequest.Builder(method.value, path.toString())
-      .withHeader(auth.name(), auth.value())
-    for ((key, value) <- params) {
-      specRequestBuilder = specRequestBuilder.withQueryParam(key, value)
-    }
-    if (body.nonEmpty) {
-      specRequestBuilder = specRequestBuilder
-        .withBody(body.get)
-        .withHeader("content-type", "application/json")
-    }
+    // Copy the response so we can validate the body while also allowing
+    // callers to read the body
     val responseBody = getRespData(response)
-    val responseCopy = response.copy(entity = HttpEntity.Strict(response.entity.contentType, ByteString(responseBody)))
-    var specResponseBuilder = SimpleResponse.Builder
-      .status(response.status.intValue())
-      .withBody(responseBody)
-    for (header <- response.headers) {
-      specResponseBuilder = specResponseBuilder.withHeader(header.name, header.value)
-    }
-    val specRequest = specRequestBuilder.build()
-    val specResponse = specResponseBuilder.build()
+    val responseCopy = response.withEntity(response.entity.contentType, ByteString(responseBody))
 
-    val specValidationReport = specValidator.validate(specRequest, specResponse)
+    val specValidationReport = validateRequestAndResponse(request, body, response, responseBody)
     if (specValidationReport.hasErrors) {
-      System.out.println("!!! REQUEST: " + specRequest.getBody)
-      System.out.println("!!! RESPONSE: " + specResponse.getBody)
-      fail(specValidationReport.toString)
+      fail(
+        s"HTTP request or response did not match the Swagger spec.\nRequest: $request\n" +
+          s"Response: $response\nValidation Error: $specValidationReport")
     }
-
     responseCopy
   }
 
