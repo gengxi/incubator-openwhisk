@@ -259,7 +259,7 @@ swaggerSources {
         inputFile = file("$projectDir/../core/controller/src/main/resources/apiv1swagger.json")
         code {
             language = 'java'
-            configFile = file('swagger-config.json')
+            configFile = file('src/test/resources/swagger-config.json')
             components = ['org.slf4j.simpleLogger.defaultLogLevel': 'DEBUG']
             dependsOn validation
         }
