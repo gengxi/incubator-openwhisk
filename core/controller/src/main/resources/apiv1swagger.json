@@ -320,6 +320,9 @@
                         }
                     }
                 ],
+                "consumes": [
+                    "application/json"
+                ],
                 "responses": {
                     "200": {
                         "description": "Successful activation"
@@ -551,6 +554,9 @@
                             "type": "object"
                         }
                     }
+                ],
+                "consumes": [
+                    "application/json"
                 ],
                 "responses": {
                     "200": {
