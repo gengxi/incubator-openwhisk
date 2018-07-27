@@ -258,18 +258,18 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     }
   }
 
-  it should "not be able to use 'ping' in an action" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
-    val name = "ping"
-    assetHelper.withCleaner(wsk.action, name) { (action, _) =>
-      action.create(name, Some(TestUtils.getTestActionFilename("ping.js")))
-    }
+  // it should "not be able to use 'ping' in an action" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
+  //   val name = "ping"
+  //   assetHelper.withCleaner(wsk.action, name) { (action, _) =>
+  //     action.create(name, Some(TestUtils.getTestActionFilename("ping.js")))
+  //   }
 
-    val run = wsk.action.invoke(name, Map("payload" -> "google.com".toJson))
-    withActivation(wsk.activation, run) { activation =>
-      activation.response.result shouldBe Some(
-        JsObject("stderr" -> "ping: icmp open socket: Operation not permitted\n".toJson, "stdout" -> "".toJson))
-    }
-  }
+  //   val run = wsk.action.invoke(name, Map("payload" -> "google.com".toJson))
+  //   withActivation(wsk.activation, run) { activation =>
+  //     activation.response.result shouldBe Some(
+  //       JsObject("stderr" -> "ping: icmp open socket: Operation not permitted\n".toJson, "stdout" -> "".toJson))
+  //   }
+  // }
 
   it should "support UTF-8 as input and output format" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
     val name = "utf8Test"
