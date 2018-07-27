@@ -1369,7 +1369,7 @@ object RestResult {
 class RestResult(var statusCode: StatusCode, var respData: String = "", blocking: Boolean = false)
     extends RunResult(
       RestResult.convertStausCodeToExitCode(statusCode, blocking),
-      respData,
+      respData.trim,
       RestResult.convertHttpResponseToStderr(respData)) {
 
   override def toString: String = {
