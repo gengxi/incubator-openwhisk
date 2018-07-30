@@ -71,7 +71,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     }
   }
 
-  it should "pass parameters bound on creation-time to the action" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
+  ignore should "pass parameters bound on creation-time to the action" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
     val name = "printParams"
     val params = Map("param1" -> "test1", "param2" -> "test2")
 
@@ -86,7 +86,8 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     val run = wsk.action.invoke(name, invokeParams.mapValues(_.toJson))
     withActivation(wsk.activation, run) { activation =>
       val logs = activation.logs.get.mkString(" ")
-
+      val combinedParams = (params ++ invokeParams)
+      activation.response.result shouldBe combinedParams
       (params ++ invokeParams).foreach {
         case (key, value) =>
           // logs should include(s"params.$key: $value")
@@ -195,6 +196,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     val run1 = wsk.action.invoke(name, Map("payload" -> testString.toJson))
     withActivation(wsk.activation, run1) { activation =>
       activation.response.status shouldBe "success"
+      activation.response.result shouldBe Some(testResult)
       // activation.logs.get.mkString(" ") should include(s"The message '$testString' has")
     }
 
@@ -206,6 +208,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     val run2 = wsk.action.invoke(name, Map("payload" -> testString.toJson))
     withActivation(wsk.activation, run2) { activation =>
       activation.response.status shouldBe "success"
+      activation.response.result shouldBe Some(JsObject("payload" -> s"hello, ${testString}!".toJson))
       // activation.logs.get.mkString(" ") should include(s"hello, $testString")
     }
   }
@@ -281,6 +284,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     val run = wsk.action.invoke(name, Map("payload" -> utf8.toJson))
     withActivation(wsk.activation, run) { activation =>
       activation.response.status shouldBe "success"
+      activation.response.result shouldBe Some(JsObject("payload" -> s"hello, ${utf8}!".toJson))
       // activation.logs.get.mkString(" ") should include(s"hello, $utf8")
     }
   }
