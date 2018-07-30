@@ -94,7 +94,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     }
   }
 
-  it should "copy an action and invoke it successfully" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
+  ignore should "copy an action and invoke it successfully" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
     val name = "copied"
     val packageName = "samples"
     val actionName = "wordcount"
@@ -148,7 +148,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
       copiedAction.fields("version") shouldBe JsString("0.0.1")
   }
 
-  it should "add new parameters and annotations while copying an action" in withAssetCleaner(wskprops) {
+  ignore should "add new parameters and annotations while copying an action" in withAssetCleaner(wskprops) {
     (wp, assetHelper) =>
       val origName = "origAction"
       val copiedName = "copiedAction"
@@ -210,7 +210,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     }
   }
 
-  it should "fail to invoke an action with an empty file" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
+  ignore should "fail to invoke an action with an empty file" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
     val name = "empty"
     assetHelper.withCleaner(wsk.action, name) { (action, _) =>
       action.create(name, Some(TestUtils.getTestActionFilename("empty.js")))
@@ -222,7 +222,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     }
   }
 
-  it should "blocking invoke of nested blocking actions" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
+  ignore should "blocking invoke of nested blocking actions" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
     val name = "nestedBlockingAction"
     val child = "wc"
 
