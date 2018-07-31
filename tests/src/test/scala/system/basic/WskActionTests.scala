@@ -71,7 +71,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     }
   }
 
-  ignore should "pass parameters bound on creation-time to the action" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
+  it should "pass parameters bound on creation-time to the action" in withAssetCleaner(wskprops) { (wp, assetHelper) =>
     val name = "printParams"
     val params = Map("param1" -> "test1", "param2" -> "test2")
 
@@ -87,7 +87,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     withActivation(wsk.activation, run) { activation =>
       val logs = activation.logs.get.mkString(" ")
       val combinedParams = (params ++ invokeParams)
-      activation.response.result shouldBe combinedParams
+      activation.response.result shouldBe Some(JsObject("params" -> combinedParams.toJson))
       (params ++ invokeParams).foreach {
         case (key, value) =>
           // logs should include(s"params.$key: $value")
