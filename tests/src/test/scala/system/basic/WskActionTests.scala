@@ -53,7 +53,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     withActivation(wsk.activation, run) { activation =>
       activation.response.status shouldBe "success"
       activation.response.result shouldBe Some(JsObject("done" -> true.toJson))
-      // activation.logs.get.mkString(" ") shouldBe empty
+    // activation.logs.get.mkString(" ") shouldBe empty
     }
   }
 
@@ -67,7 +67,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     withActivation(wsk.activation, run) { activation =>
       activation.response.status shouldBe "success"
       activation.response.result shouldBe Some(testResult)
-      // activation.logs.get.mkString(" ") should include(testString)
+    // activation.logs.get.mkString(" ") should include(testString)
     }
   }
 
@@ -90,7 +90,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
       activation.response.result shouldBe Some(JsObject("params" -> combinedParams.toJson))
       (params ++ invokeParams).foreach {
         case (key, value) =>
-          // logs should include(s"params.$key: $value")
+        // logs should include(s"params.$key: $value")
       }
     }
   }
@@ -119,7 +119,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     withActivation(wsk.activation, run) { activation =>
       activation.response.status shouldBe "success"
       activation.response.result shouldBe Some(testResult)
-      // activation.logs.get.mkString(" ") should include(testString)
+    // activation.logs.get.mkString(" ") should include(testString)
     }
   }
 
@@ -197,7 +197,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     withActivation(wsk.activation, run1) { activation =>
       activation.response.status shouldBe "success"
       activation.response.result shouldBe Some(testResult)
-      // activation.logs.get.mkString(" ") should include(s"The message '$testString' has")
+    // activation.logs.get.mkString(" ") should include(s"The message '$testString' has")
     }
 
     wsk.action.delete(name)
@@ -209,7 +209,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     withActivation(wsk.activation, run2) { activation =>
       activation.response.status shouldBe "success"
       activation.response.result shouldBe Some(JsObject("payload" -> s"hello, ${testString}!".toJson))
-      // activation.logs.get.mkString(" ") should include(s"hello, $testString")
+    // activation.logs.get.mkString(" ") should include(s"hello, $testString")
     }
   }
 
@@ -285,7 +285,7 @@ class WskActionTests extends TestHelpers with WskTestHelpers with JsHelpers with
     withActivation(wsk.activation, run) { activation =>
       activation.response.status shouldBe "success"
       activation.response.result shouldBe Some(JsObject("payload" -> s"hello, ${utf8}!".toJson))
-      // activation.logs.get.mkString(" ") should include(s"hello, $utf8")
+    // activation.logs.get.mkString(" ") should include(s"hello, $utf8")
     }
   }
 }
