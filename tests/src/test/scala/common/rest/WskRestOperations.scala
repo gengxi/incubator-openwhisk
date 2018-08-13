@@ -1141,7 +1141,7 @@ trait RunRestCmd extends Matchers with ScalaFutures {
   val basePath = Path("/api/v1")
   val systemNamespace = "whisk.system"
 
-  implicit val config = PatienceConfig(100 seconds, 15 milliseconds)
+  implicit val config = PatienceConfig(200 seconds, 15 milliseconds)
   implicit val actorSystem: ActorSystem
   lazy implicit val executionContext = actorSystem.dispatcher
   lazy implicit val materializer = ActorMaterializer()
